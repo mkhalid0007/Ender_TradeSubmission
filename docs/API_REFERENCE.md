@@ -15,12 +15,70 @@ Quick reference for all external API endpoints used by the application.
 
 ## Authentication
 
-All requests require authentication via headers:
+The application uses AWS Cognito for authentication with a dual-token system.
 
-| API | Header | Value |
-|-----|--------|-------|
-| Ender | `Trader-Token` | User's trader token |
-| Reporting | `Trade-Token` | User's trader token |
+### Login Flow
+
+1. User provides email, password (Cognito credentials), and GBE trader token
+2. Application authenticates with Cognito via `/api/v1/auth/login`
+3. Receives `accessToken`, `idToken`, `refreshToken`, and `expiresIn`
+4. Access tokens are automatically refreshed before expiry
+
+### Authentication Endpoints
+
+#### Login
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+Body:
+{
+  "login": "user@example.com",
+  "password": "user_password"
+}
+
+Response:
+{
+  "accessToken": "eyJra...",
+  "idToken": "eyJra...",
+  "refreshToken": "eyJjd...",
+  "expiresIn": 3600
+}
+```
+
+#### Refresh Token
+
+```http
+POST /api/v1/auth/refresh
+Headers:
+  X-Refresh-Token: <refreshToken>
+
+Response:
+{
+  "accessToken": "eyJra...",
+  "idToken": "eyJra...",
+  "refreshToken": "eyJjd...",
+  "expiresIn": 3600
+}
+```
+
+### API Headers
+
+Different APIs require different authentication headers:
+
+| API | Required Headers |
+|-----|-----------------|
+| **Ender API** (Trade Submission) | `X-Authorization: Bearer <accessToken>`, `Trader-Token: <traderToken>` |
+| **Reporting API** (PnL, Notes) | `gbe-trader-token: <traderToken>` |
+
+### Token Types
+
+| Token | Source | Purpose | Expiry |
+|-------|--------|---------|--------|
+| `accessToken` | Cognito login | Authenticate with Ender API | ~1 hour |
+| `refreshToken` | Cognito login | Obtain new access tokens | ~30 days |
+| `traderToken` | User input | GBE trader identification | No expiry |
 
 ---
 
@@ -31,7 +89,8 @@ All requests require authentication via headers:
 ```http
 POST /api/v1/trades/pjm/virtuals
 Headers:
-  Trader-Token: <token>
+  X-Authorization: Bearer <accessToken>
+  Trader-Token: <traderToken>
   Trade-Date: YYYY-MM-DD
   Content-Type: application/json
 
@@ -59,7 +118,8 @@ Response: 200 OK
 ```http
 PUT /api/v1/trades/pjm/virtuals
 Headers:
-  Trader-Token: <token>
+  X-Authorization: Bearer <accessToken>
+  Trader-Token: <traderToken>
   Trade-Date: YYYY-MM-DD
   Content-Type: application/json
 
@@ -73,7 +133,8 @@ Response: 200 OK
 ```http
 DELETE /api/v1/trades/pjm/virtuals
 Headers:
-  Trader-Token: <token>
+  X-Authorization: Bearer <accessToken>
+  Trader-Token: <traderToken>
   Trade-Date: YYYY-MM-DD
 
 Response: 200 OK
@@ -84,7 +145,8 @@ Response: 200 OK
 ```http
 POST /api/v1/trades/pjm/utc
 Headers:
-  Trader-Token: <token>
+  X-Authorization: Bearer <accessToken>
+  Trader-Token: <traderToken>
   Trade-Date: YYYY-MM-DD
   Content-Type: application/json
 
@@ -110,7 +172,8 @@ Response: 200 OK
 ```http
 PUT /api/v1/trades/pjm/utc
 Headers:
-  Trader-Token: <token>
+  X-Authorization: Bearer <accessToken>
+  Trader-Token: <traderToken>
   Trade-Date: YYYY-MM-DD
   Content-Type: application/json
 
@@ -124,7 +187,8 @@ Response: 200 OK
 ```http
 DELETE /api/v1/trades/pjm/utc
 Headers:
-  Trader-Token: <token>
+  X-Authorization: Bearer <accessToken>
+  Trader-Token: <traderToken>
   Trade-Date: YYYY-MM-DD
 
 Response: 200 OK
@@ -191,7 +255,7 @@ Response:
 ```http
 GET /api/v1/pjm/virtuals/trades?status=cleared&tradeDate=YYYY-MM-DD
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Response:
 [
@@ -217,7 +281,7 @@ Response:
 ```http
 GET /api/v1/pjm/virtuals/trades?status=settled&tradeDate=YYYY-MM-DD
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Response:
 [
@@ -246,7 +310,7 @@ Response:
 ```http
 GET /api/v1/pjm/utc/trades?status=cleared&tradeDate=YYYY-MM-DD
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Response:
 [
@@ -272,7 +336,7 @@ Response:
 ```http
 GET /api/v1/pjm/utc/trades?status=settled&tradeDate=YYYY-MM-DD
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Response:
 [
@@ -302,9 +366,9 @@ Response:
 ### Get PnL Data
 
 ```http
-GET /api/v1/reporting/pnl/{market}/{period}?leaderboard={true|false}
+GET /api/reporting/pnl/{market}/{period}?leaderboard={true|false}
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Path Parameters:
   market: virtuals | utc
@@ -349,7 +413,7 @@ Response (leaderboard=true):
 ```http
 GET /api/v1/reporting/notes/{market}/{type}?tradeDate=YYYY-MM-DD
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Path Parameters:
   market: pjm
@@ -372,7 +436,7 @@ Response:
 ```http
 POST /api/v1/reporting/notes/{market}/{type}?tradeDate=YYYY-MM-DD
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
   Content-Type: application/json
 
 Path Parameters:
@@ -393,7 +457,7 @@ Response: 200 OK
 ```http
 DELETE /api/v1/reporting/notes/{market}/{type}?tradeDate=YYYY-MM-DD&tag={tag}
 Headers:
-  Trade-Token: <token>
+  gbe-trader-token: <traderToken>
 
 Path Parameters:
   market: pjm

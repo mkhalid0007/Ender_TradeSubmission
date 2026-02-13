@@ -44,7 +44,7 @@ This application enables energy traders to:
 - **UI Components:** shadcn/ui
 - **Charts:** Recharts
 - **State Management:** React Context API
-- **Authentication:** Token-based (Trader-Token header)
+- **Authentication:** AWS Cognito (with automatic token refresh)
 
 ---
 
@@ -54,6 +54,9 @@ This application enables energy traders to:
 src/
 ├── app/                          # Next.js App Router pages
 │   ├── api/                      # API proxy routes
+│   │   ├── auth/                 # Authentication proxies
+│   │   │   ├── login/            # POST login (Cognito)
+│   │   │   └── refresh/          # POST token refresh
 │   │   ├── ender/                # Trade submission proxies
 │   │   │   └── pjm/
 │   │   │       ├── virtuals/     # POST/PUT/DELETE virtuals
@@ -232,7 +235,27 @@ REPORTING_API_URL = 'https://futures.gbe.energy/reporting'
 
 ### Authentication
 
-All API calls use the `Trader-Token` header (or `Trade-Token` for some reporting endpoints).
+The application uses AWS Cognito for user authentication with a dual-token system:
+
+| Token Type | Purpose | Storage |
+|------------|---------|---------|
+| **Access Token** | Cognito authentication (expires ~1 hour) | localStorage |
+| **Refresh Token** | Obtain new access tokens | localStorage |
+| **Trader Token** | GBE API identification | localStorage |
+
+**Login requires:**
+- Email (Cognito username)
+- Password (Cognito password)
+- Trader Token (GBE-specific identifier, e.g., `5zWpE9tB`)
+
+**API Headers by Service:**
+
+| API | Headers Required |
+|-----|-----------------|
+| **Ender API** | `X-Authorization: Bearer <accessToken>`, `Trader-Token: <traderToken>` |
+| **Reporting API** | `gbe-trader-token: <traderToken>` |
+
+**Token Refresh:** Access tokens are automatically refreshed 5 minutes before expiry using the refresh token.
 
 ### Key Endpoints
 
@@ -313,12 +336,20 @@ All external API calls go through Next.js API routes (`/api/*`) to:
 ### `AuthContext`
 ```typescript
 interface AuthContextType {
-  traderToken: string | null
   isAuthenticated: boolean
-  login: (token: string) => Promise<boolean>
+  isLoading: boolean
+  traderToken: string | null    // GBE trader token for API calls
+  accessToken: string | null    // Cognito access token for authentication
+  login: (email: string, password: string, traderToken: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
+  refreshTokens: () => Promise<boolean>
 }
 ```
+
+**Features:**
+- Automatic token refresh before expiry (5-minute buffer)
+- Persistent storage in localStorage
+- Session restoration on page reload
 
 ### `NodesContext`
 ```typescript

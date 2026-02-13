@@ -131,6 +131,9 @@ All external API calls go through Next.js API routes to handle authentication an
 
 ```
 src/app/api/
+├── auth/
+│   ├── login/route.ts       # POST - Cognito authentication
+│   └── refresh/route.ts     # POST - Token refresh
 ├── ender/pjm/
 │   ├── virtuals/route.ts    # POST, PUT, DELETE
 │   └── utc/route.ts         # POST, PUT, DELETE
@@ -149,15 +152,15 @@ src/app/api/
 Located in `src/lib/api/`:
 
 ```typescript
-// virtuals.ts
-submitVirtualTrades(token, date, payload)
-replaceVirtualTrades(token, date, payload)
-deleteVirtualTrades(token, date)
+// virtuals.ts (uses accessToken + traderToken)
+submitVirtualTrades(accessToken, traderToken, date, payload)
+replaceVirtualTrades(accessToken, traderToken, date, payload)
+deleteVirtualTrades(accessToken, traderToken, date)
 
-// utc.ts
-submitUTCTrades(token, date, payload)
-replaceUTCTrades(token, date, payload)
-deleteUTCTrades(token, date)
+// utc.ts (uses accessToken + traderToken)
+submitUTCTrades(accessToken, traderToken, date, payload)
+replaceUTCTrades(accessToken, traderToken, date, payload)
+deleteUTCTrades(accessToken, traderToken, date)
 
 // trades.ts
 fetchTrades(market, token, date)
@@ -183,10 +186,12 @@ fetchUTCNodes(token)
 
 | Header | Used For | Value |
 |--------|----------|-------|
-| `Trader-Token` | Ender API | User's trader token |
-| `Trade-Token` | Reporting API | User's trader token |
+| `X-Authorization` | Ender API (auth) | `Bearer <accessToken>` |
+| `Trader-Token` | Ender API (identification) | User's GBE trader token |
+| `gbe-trader-token` | Reporting API | User's GBE trader token |
 | `Trade-Date` | Trade operations | YYYY-MM-DD format |
 | `Content-Type` | POST/PUT | application/json |
+| `X-Refresh-Token` | Token refresh | Cognito refresh token |
 
 ---
 
@@ -211,15 +216,36 @@ fetchUTCNodes(token)
 
 ### AuthContext
 
+Manages AWS Cognito authentication with automatic token refresh.
+
 ```typescript
 // State
-traderToken: string | null    // Stored in localStorage
-isAuthenticated: boolean      // Derived from token presence
+accessToken: string | null    // Cognito access token for Ender API
+refreshToken: string | null   // Cognito refresh token
+traderToken: string | null    // GBE trader token for API identification
+tokenExpiry: number | null    // Timestamp when accessToken expires
+isAuthenticated: boolean      // Derived from accessToken + traderToken presence
+isLoading: boolean            // Loading state during initialization/refresh
 
 // Actions
-login(token) → validates token against API, stores if valid
-logout() → clears token from localStorage
+login(email, password, traderToken) → authenticates with Cognito, stores all tokens
+logout() → clears all tokens from state and localStorage
+refreshTokens() → refreshes accessToken using refreshToken
+
+// Auto-refresh
+- Schedules token refresh 5 minutes before expiry
+- Uses setTimeout with dynamic interval based on token expiry
+- Preserves traderToken across refreshes
 ```
+
+#### Token Storage (localStorage)
+
+| Key | Value |
+|-----|-------|
+| `ender_access_token` | Cognito access token |
+| `ender_refresh_token` | Cognito refresh token |
+| `ender_trader_token` | GBE trader token |
+| `ender_token_expiry` | Token expiry timestamp |
 
 ### NodesContext
 
