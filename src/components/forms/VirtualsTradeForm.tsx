@@ -54,7 +54,7 @@ export function VirtualsTradeForm() {
   const searchParams = useSearchParams()
   const isEditMode = searchParams.get('mode') === 'edit'
   
-  const { traderToken } = useAuth()
+  const { accessToken, traderToken } = useAuth()
   const [tradeDate, setTradeDate] = useState(getTomorrowDate())
   
   // Default cells and default block creator
@@ -341,7 +341,7 @@ export function VirtualsTradeForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!traderToken || !isValid) return
+    if (!accessToken || !traderToken || !isValid) return
 
     setIsSubmitting(true)
     setMessage(null)
@@ -381,10 +381,10 @@ export function VirtualsTradeForm() {
 
     try {
       if (isEditMode) {
-        await replaceVirtualTrades(traderToken, tradeDate, { trades })
+        await replaceVirtualTrades(accessToken, traderToken, tradeDate, { trades })
         setMessage({ type: 'success', text: 'Virtual trades updated successfully!' })
       } else {
-        await submitVirtualTrades(traderToken, tradeDate, { trades })
+        await submitVirtualTrades(accessToken, traderToken, tradeDate, { trades })
         setMessage({ type: 'success', text: 'Virtual trades submitted successfully!' })
       }
       

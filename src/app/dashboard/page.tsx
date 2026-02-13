@@ -68,7 +68,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <CardTitle className="text-lg">UTC Trades</CardTitle>
-                <CardDescription>Submit Up-to-Congestion bids</CardDescription>
+                <CardDescription>Submit UTC bids</CardDescription>
               </div>
             </div>
           </CardHeader>

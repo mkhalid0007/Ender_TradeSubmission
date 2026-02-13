@@ -9,40 +9,17 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
 
-// Validate token by making a test API call
-async function validateToken(token: string): Promise<{ valid: boolean; error?: string }> {
-  try {
-    // Try to fetch trades - this will return 401 if token is invalid
-    const today = new Date().toISOString().split('T')[0]
-    const response = await fetch(`/api/reporting/trades?market=virtuals&accountId=${token}&date=${today}`)
-    
-    if (response.status === 401) {
-      return { valid: false, error: 'Invalid trader token. Please check and try again.' }
-    }
-    
-    if (response.status === 403) {
-      return { valid: false, error: 'Access denied. Your token may not have the required permissions.' }
-    }
-    
-    // Any other successful response means the token is valid
-    if (response.ok || response.status === 200) {
-      return { valid: true }
-    }
-    
-    // For other errors, we'll still allow login but warn
-    return { valid: true }
-  } catch (error) {
-    // Network error - allow login, will fail later if truly invalid
-    console.error('Token validation error:', error)
-    return { valid: true } // Allow through, will fail on actual API calls
-  }
-}
-
 export default function LoginPage() {
-  const { setToken, isAuthenticated, isLoading } = useAuth()
+  const { login, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
-  const [token, setTokenInput] = useState('')
-  const [isValidating, setIsValidating] = useState(false)
+  
+  // Login fields
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [traderToken, setTraderToken] = useState('')
+  
+  // Login state
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -53,26 +30,25 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!token.trim()) return
+    if (!email.trim() || !password.trim() || !traderToken.trim()) return
     
     setError(null)
-    setIsValidating(true)
+    setIsSubmitting(true)
     
     try {
-      const result = await validateToken(token.trim())
+      const result = await login(email.trim(), password, traderToken.trim())
       
-      if (!result.valid) {
-        setError(result.error || 'Invalid token')
-        setIsValidating(false)
+      if (!result.success) {
+        setError(result.error || 'Login failed')
+        setIsSubmitting(false)
         return
       }
       
-      // Token is valid, proceed
-      setToken(token.trim())
+      // Login successful, redirect
       router.push('/dashboard')
     } catch {
-      setError('Failed to validate token. Please try again.')
-      setIsValidating(false)
+      setError('Failed to login. Please try again.')
+      setIsSubmitting(false)
     }
   }
 
@@ -95,48 +71,85 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl">Welcome to Ender Trades</CardTitle>
           <CardDescription>
-            Enter your Trader Token to manage PJM virtual trades
+            Sign in to manage your PJM virtual trades
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="token">Trader Token</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="token"
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setError(null)
+                }}
+                required
+                autoComplete="email"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError(null)
+                }}
+                required
+                autoComplete="current-password"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="traderToken">Trader Token</Label>
+              <Input
+                id="traderToken"
                 type="password"
                 placeholder="Enter your trader token"
-                value={token}
+                value={traderToken}
                 onChange={(e) => {
-                  setTokenInput(e.target.value)
-                  setError(null) // Clear error when user types
+                  setTraderToken(e.target.value)
+                  setError(null)
                 }}
                 required
                 autoComplete="off"
-                disabled={isValidating}
-                className={error ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                disabled={isSubmitting}
               />
               <p className="text-xs text-muted-foreground">
-                This token is used for API authentication with Ender endpoints
+                Your GBE trader token for API access
               </p>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-center gap-2 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={!token.trim() || isValidating}>
-              {isValidating ? (
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={!email.trim() || !password.trim() || !traderToken.trim() || isSubmitting}
+            >
+              {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Validating...
+                  Signing in...
                 </>
               ) : (
                 <>
-                  Continue to Dashboard
+                  Sign In
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}

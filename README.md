@@ -155,7 +155,6 @@ npm run dev
 # Production build
 npm run build
 npm start
-
 # Linting
 npm run lint
 ```

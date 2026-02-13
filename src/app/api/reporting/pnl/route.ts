@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'ytd' // daily, weekly, quarterly, ytd, alltime
     const market = searchParams.get('market') || 'virtuals' // virtuals or utc
+    // Support both header and query param for trader token
     const traderToken = request.headers.get('gbe-trader-token') || searchParams.get('traderToken')
     
     if (!traderToken) {

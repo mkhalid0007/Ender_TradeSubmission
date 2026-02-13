@@ -5,12 +5,13 @@ const ENDER_API_URL = 'https://futures.gbe.energy/ender'
 // POST - Submit UTC trades
 export async function POST(request: NextRequest) {
   try {
+    const xAuthorization = request.headers.get('X-Authorization')
     const traderToken = request.headers.get('Trader-Token')
     const tradeDate = request.headers.get('Trade-Date')
     
-    if (!traderToken || !tradeDate) {
+    if (!xAuthorization || !traderToken || !tradeDate) {
       return NextResponse.json(
-        { error: 'Missing Trader-Token or Trade-Date header' },
+        { error: 'Missing X-Authorization, Trader-Token, or Trade-Date header' },
         { status: 400 }
       )
     }
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Authorization': xAuthorization,
         'Trader-Token': traderToken,
         'Trade-Date': tradeDate,
       },
@@ -45,12 +47,13 @@ export async function POST(request: NextRequest) {
 // PUT - Replace UTC trades
 export async function PUT(request: NextRequest) {
   try {
+    const xAuthorization = request.headers.get('X-Authorization')
     const traderToken = request.headers.get('Trader-Token')
     const tradeDate = request.headers.get('Trade-Date')
     
-    if (!traderToken || !tradeDate) {
+    if (!xAuthorization || !traderToken || !tradeDate) {
       return NextResponse.json(
-        { error: 'Missing Trader-Token or Trade-Date header' },
+        { error: 'Missing X-Authorization, Trader-Token, or Trade-Date header' },
         { status: 400 }
       )
     }
@@ -61,6 +64,7 @@ export async function PUT(request: NextRequest) {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'X-Authorization': xAuthorization,
         'Trader-Token': traderToken,
         'Trade-Date': tradeDate,
       },
@@ -85,12 +89,13 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete UTC trades
 export async function DELETE(request: NextRequest) {
   try {
+    const xAuthorization = request.headers.get('X-Authorization')
     const traderToken = request.headers.get('Trader-Token')
     const tradeDate = request.headers.get('Trade-Date')
     
-    if (!traderToken || !tradeDate) {
+    if (!xAuthorization || !traderToken || !tradeDate) {
       return NextResponse.json(
-        { error: 'Missing Trader-Token or Trade-Date header' },
+        { error: 'Missing X-Authorization, Trader-Token, or Trade-Date header' },
         { status: 400 }
       )
     }
@@ -99,6 +104,7 @@ export async function DELETE(request: NextRequest) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'X-Authorization': xAuthorization,
         'Trader-Token': traderToken,
         'Trade-Date': tradeDate,
       },

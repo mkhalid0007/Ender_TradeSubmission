@@ -59,7 +59,7 @@ export function UTCTradeForm() {
   const searchParams = useSearchParams()
   const isEditMode = searchParams.get('mode') === 'edit'
   
-  const { traderToken } = useAuth()
+  const { accessToken, traderToken } = useAuth()
   const [tradeDate, setTradeDate] = useState(getTomorrowDate())
   
   // Default cells and default block creator
@@ -296,7 +296,7 @@ export function UTCTradeForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!traderToken || !isValid) return
+    if (!accessToken || !traderToken || !isValid) return
 
     setIsSubmitting(true)
     setMessage(null)
@@ -312,10 +312,10 @@ export function UTCTradeForm() {
 
     try {
       if (isEditMode) {
-        await replaceUTCTrades(traderToken, tradeDate, { trades })
+        await replaceUTCTrades(accessToken, traderToken, tradeDate, { trades })
         setMessage({ type: 'success', text: 'UTC trades updated successfully!' })
       } else {
-        await submitUTCTrades(traderToken, tradeDate, { trades })
+        await submitUTCTrades(accessToken, traderToken, tradeDate, { trades })
         setMessage({ type: 'success', text: 'UTC trades submitted successfully!' })
       }
       
