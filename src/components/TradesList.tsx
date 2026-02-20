@@ -55,7 +55,7 @@ interface UTCTrade {
 
 export function TradesList() {
   const router = useRouter()
-  const { traderToken } = useAuth()
+  const { traderToken, accessToken } = useAuth()
   const { virtualsNodes, utcNodes } = useNodes()
   const [selectedDate, setSelectedDate] = useState(getTomorrowDate())
   
@@ -198,12 +198,12 @@ export function TradesList() {
   }
 
   const handleDeleteVirtuals = async () => {
-    if (!traderToken) return
+    if (!traderToken || !accessToken) return
     setVirtualsDeleting(true)
     setMessage(null)
 
     try {
-      await deleteVirtualTrades(traderToken, selectedDate)
+      await deleteVirtualTrades(accessToken, traderToken, selectedDate)
       setMessage({ type: 'success', text: 'Virtual trades cancelled successfully!' })
       setVirtualTrades([])
     } catch (err) {
@@ -281,12 +281,12 @@ export function TradesList() {
   }
 
   const handleDeleteUTC = async () => {
-    if (!traderToken) return
+    if (!traderToken || !accessToken) return
     setUtcDeleting(true)
     setMessage(null)
 
     try {
-      await deleteUTCTrades(traderToken, selectedDate)
+      await deleteUTCTrades(accessToken, traderToken, selectedDate)
       setMessage({ type: 'success', text: 'UTC trades cancelled successfully!' })
       setUtcTrades([])
     } catch (err) {
